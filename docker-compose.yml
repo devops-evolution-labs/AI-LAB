@@ -1,0 +1,125 @@
+services:
+
+  llama-router:
+    image: ghcr.io/ggml-org/llama.cpp:server-cuda
+    container_name: ai-lab-llama-router
+
+    ports:
+      - "11434:11434"
+
+    volumes:
+      - ./llama/models:/models
+      - ./llama/router.json:/router.json
+
+    command: >
+      --router-config /router.json
+      --host 0.0.0.0
+      --port 11434
+      --ctx-size 4096
+      --parallel 2
+      --threads 16
+      --batch-size 512
+      --ubatch-size 512
+      --cont-batching
+      --n-gpu-layers 999
+      --model-idle-timeout 600
+      --mlock
+
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+
+    restart: unless-stopped
+
+
+  open-webui:
+    image: ghcr.io/open-webui/open-webui:main
+    container_name: ai-lab-open-webui
+
+    ports:
+      - "3100:8080"
+
+    environment:
+      - WEBUI_AUTH=False
+      - OPENAI_API_BASE_URL=http://llama-router:11434/v1
+      - OPENAI_API_KEY=dummy
+
+    volumes:
+      - open-webui:/app/backend/data
+
+    depends_on:
+      - llama-router
+
+    restart: unless-stopped
+
+
+  agent-runner:
+    image: python:3.11-slim
+    container_name: ai-lab-agent
+
+    volumes:
+      - ./workspace:/workspace
+
+    working_dir: /workspace
+
+    command: >
+      sh -c "pip install fastapi uvicorn requests pillow python-multipart &&
+             uvicorn agent:app --host 0.0.0.0 --port 3300"
+
+    ports:
+      - "3300:3300"
+
+    restart: unless-stopped
+
+
+  mcp-shell:
+    image: node:20
+    container_name: ai-lab-mcp-shell
+
+    command: >
+      sh -c "npm install -g @modelcontextprotocol/server-shell &&
+             mcp-server-shell"
+
+    ports:
+      - "3402:3000"
+
+    restart: unless-stopped
+
+
+  mcp-git:
+    image: node:20
+    container_name: ai-lab-mcp-git
+
+    volumes:
+      - ./workspace:/workspace
+
+    command: >
+      sh -c "npm install -g @modelcontextprotocol/server-git &&
+             mcp-server-git /workspace"
+
+    ports:
+      - "3403:3000"
+
+    restart: unless-stopped
+
+
+  mcp-web:
+    image: node:20
+    container_name: ai-lab-mcp-web
+
+    command: >
+      sh -c "npm install -g @modelcontextprotocol/server-fetch &&
+             mcp-server-fetch"
+
+    ports:
+      - "3404:3000"
+
+    restart: unless-stopped
+
+
+volumes:
+  open-webui:

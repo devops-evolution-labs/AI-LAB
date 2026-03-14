@@ -1,0 +1,40 @@
+# VCS
+.git
+.gitignore
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode
+.idea
+
+# Python
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.venv
+venv
+.env
+.env.*
+
+# Node
+node_modules
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Local artifacts
+*.log
+*.tmp
+tmp
+cache
+.cache
+
+# Large assets / models
+llama/models
+rag
+screenshots
+workspace/tmp
+workspace/cache
