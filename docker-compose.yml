@@ -22,6 +22,7 @@ services:
       --ubatch-size 512
       --cont-batching
       --n-gpu-layers 999
+      --no-warmup
       --mlock
 
     deploy:
@@ -42,12 +43,16 @@ services:
     ports:
       - "3100:8080"
 
+    cpus: "2.0"
+    mem_limit: 4g
+
     environment:
       - WEBUI_AUTH=True
       - OPENAI_API_BASE_URL=http://agent-runner:3300/v1
       - OPENAI_API_KEY=dummy
       - ENABLE_OPENAI_API=True
       - ENABLE_OLLAMA_API=False
+      - 'WEBUI_BANNERS=[{"id":"models-status","type":"info","title":"Status dos Modelos","content":"Acompanhe modelos ativos em: http://localhost:3300/models/dashboard","dismissible":true,"timestamp":1742000000}]'
 
     volumes:
       - open-webui:/app/backend/data
@@ -67,6 +72,11 @@ services:
 
     working_dir: /workspace
 
+    environment:
+      - AI_LAB_MAX_CONTEXT_TOKENS=3072
+      - AI_LAB_CONTEXT_MARGIN=640
+      - AI_LAB_CHARS_PER_TOKEN=2.2
+
     command: >
       sh -c "pip install fastapi uvicorn requests pillow python-multipart &&
              uvicorn agent:app --host 0.0.0.0 --port 3300"
@@ -74,7 +84,34 @@ services:
     ports:
       - "3300:3300"
 
+    cpus: "2.0"
+    mem_limit: 2g
+
     restart: unless-stopped
+
+
+  model-warmup:
+    image: curlimages/curl:8.12.1
+    container_name: ai-lab-model-warmup
+
+    depends_on:
+      - llama-router
+
+    command: >
+      sh -c "
+      for i in $(seq 1 60); do
+        if curl -sf http://llama-router:11434/v1/models >/dev/null; then
+          break;
+        fi;
+        sleep 2;
+      done;
+      curl -s http://llama-router:11434/v1/chat/completions
+      -H 'Content-Type: application/json'
+      -d '{\"model\":\"codigo\",\"messages\":[{\"role\":\"user\",\"content\":\"warmup\"}],\"max_tokens\":1,\"stream\":false}' >/dev/null || true;
+      echo warmup_done;
+      "
+
+    restart: "no"
 
 
   mcp-shell:
