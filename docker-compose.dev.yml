@@ -1,0 +1,10 @@
+services:
+  agent-runner:
+    command: >
+      sh -c "pip install fastapi uvicorn requests pillow python-multipart &&
+             uvicorn agent:app --host 0.0.0.0 --port 3300 --reload --reload-dir /workspace"
+    develop:
+      watch:
+        - action: sync
+          path: ./workspace
+          target: /workspace

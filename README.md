@@ -96,7 +96,13 @@ Pipeline do UI Agent:
 ```bash
 git clone <seu-repo>
 cd AI-LAB
-docker compose up --build
+make up
+```
+
+Ambiente de desenvolvimento com hot reload no `agent-runner`:
+
+```bash
+make up-dev
 ```
 
 Portas principais:

@@ -9,10 +9,10 @@ services:
 
     volumes:
       - ./llama/models:/models
-      - ./llama/router.json:/router.json
 
     command: >
-      --router-config /router.json
+      --models-dir /models
+      --models-max 2
       --host 0.0.0.0
       --port 11434
       --ctx-size 4096
@@ -22,7 +22,6 @@ services:
       --ubatch-size 512
       --cont-batching
       --n-gpu-layers 999
-      --model-idle-timeout 600
       --mlock
 
     deploy:
@@ -44,9 +43,11 @@ services:
       - "3100:8080"
 
     environment:
-      - WEBUI_AUTH=False
-      - OPENAI_API_BASE_URL=http://llama-router:11434/v1
+      - WEBUI_AUTH=True
+      - OPENAI_API_BASE_URL=http://agent-runner:3300/v1
       - OPENAI_API_KEY=dummy
+      - ENABLE_OPENAI_API=True
+      - ENABLE_OLLAMA_API=False
 
     volumes:
       - open-webui:/app/backend/data
@@ -77,6 +78,7 @@ services:
 
 
   mcp-shell:
+    profiles: ["mcp"]
     image: node:20
     container_name: ai-lab-mcp-shell
 
@@ -91,6 +93,7 @@ services:
 
 
   mcp-git:
+    profiles: ["mcp"]
     image: node:20
     container_name: ai-lab-mcp-git
 
@@ -108,6 +111,7 @@ services:
 
 
   mcp-web:
+    profiles: ["mcp"]
     image: node:20
     container_name: ai-lab-mcp-web
 
